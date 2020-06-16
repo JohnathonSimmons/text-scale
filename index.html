@@ -1,0 +1,245 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+  <meta charset="utf-8">
+  <title>type scale</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- Add your site or application content here -->
+  <div id="app">
+
+    <div class="rail">
+      <div class="form">
+        <label for="message">Preview Text</label>
+        <input type="text" id="message" v-model="message">
+        <hr>
+
+        <label for="base">Base Size <span class="un-bold">(px)<span></label>
+
+        <input type="number" id="base" v-model.number="defineBase"></input>
+        <label for="ratio">Ratio</label>
+        <input type="number" id="ratio" v-model.number="ratio"></input>
+        <label for="note">Steps</label>
+        <input type="number" id="note" v-model.number="notes"></input>
+        <button @click="toggleAdvance" class="text-link">
+          <p v-if="!advancePreview">Show Advanced</p>
+          <p v-else="advancePreview">Hide Advanced</p>
+        </button>
+        <div v-if="advancePreview">
+          <ul>
+            <li class="option-row">
+              <input type="checkbox" id="roundPixel" v-model="roundPixel"></input>
+              <label for="roundPixel" class="label--checkbox">Round to the nearest pixel</label>
+
+            </li>
+            <li class="option-row" v-if="roundPixel">
+              <input type="checkbox" id="roundEven" v-model="roundEven"></input>
+              <label for="roundEven" class="label--checkbox">Round to an even number</label>
+            </li>
+          </ul>
+        </div>
+        <div v-if="calcPreview">
+          <label>Calculation Preview</label>
+          <code>size = {{defineBase}} * {{ratio}}^( i / {{notes}} )</code>
+        </div>
+      </div>
+      <div class="button-group">
+        <button @click="calculate" class="button--primary">Submit</button>
+        <button @click="reset" class="button--label">Reset</button>
+      </div>
+    </div>
+
+    <div class="display">
+      <ul>
+        <div class="steps">
+          <button @click="addUpper" class="button--secondary steps__control">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+              <path d="M0 0h24v24H0z" fill="none" /></svg>
+          </button>
+          <button @click="removeUpper" class="button--secondary steps__control" v-if="upperCounter > 0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path d="M19 13H5v-2h14v2z" />
+              <path d="M0 0h24v24H0z" fill="none" />
+            </svg>
+          </button>
+        </div>
+
+        <li class="specimen" v-for="number in scale.length" v-bind:class="{'specimen--base': scale[number -1] == base}">
+
+          <div class="specimen__detail">
+            {{ scale[ number - 1 ] / base }}rem ({{scale[ number - 1 ] + 'px'}})
+          </div>
+
+
+
+          <p v-bind:style="{ fontSize: scale[number - 1] + 'px' }" v-bind:class="{'specimen__message--ratio' : testRatio(scale[number - 1]) }" class="specimen__message">
+            {{ message }}
+          </p>
+        </li>
+
+        <div class="steps">
+          <button @click="addLower" class="button--secondary steps__control">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+              <path d="M0 0h24v24H0z" fill="none" /></svg>
+          </button>
+          <button @click="removeLower" class="button--secondary steps__control" v-if="lowerCounter > 0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path d="M19 13H5v-2h14v2z" />
+              <path d="M0 0h24v24H0z" fill="none" />
+            </svg>
+          </button>
+        </div>
+
+      </ul>
+    </div>
+
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
+  <script>
+    var app = new Vue({
+      el: '#app',
+      data: {
+        message: 'Lorem ipsum dolor sit amet.',
+        defineBase: 16,
+        base: 16,
+        ratio: 2,
+        notes: 5,
+        roundPixel: true,
+        roundEven: false,
+        calcPreview: false,
+        advancePreview: false,
+        upperCounter: 0,
+        lowerCounter: 0,
+        scale: [],
+      },
+      computed: {
+        upperLimit: function() {
+          var limit = this.notes + this.upperCounter
+          return limit;
+        },
+        lowerLimit: function() {
+          var limit = this.notes + this.lowerCounter
+          return limit;
+        }
+      },
+      created: function () {
+         this.calculate();
+      },
+      methods: {
+        toggleAdvance: function(){
+          this.advancePreview = !this.advancePreview;
+        },
+        calculate: function() {
+
+          this.scale = [];
+          this.base = this.defineBase;
+
+          this.scale.push(this.base)
+
+          for(i = 1; i < Number(this.upperLimit) + 1; i++){
+            // uses the formula base*ratio^(i/notes)
+
+            var calcFormula = this.base * Math.pow( this.ratio, (i / this.notes) )
+
+            // checks if rounding off to a pixel, if so check if rounding to even
+            if(this.roundPixel){
+
+              if(this.roundEven){
+                var sizeUpper = 2 * Math.round( calcFormula / 2 );
+              } else {
+                var sizeUpper = Math.round( calcFormula );
+              }
+
+            }else{
+
+              var sizeUpper = calcFormula
+
+            }
+            this.scale.push(sizeUpper)
+          }
+
+          for(j = 1; j < Number(this.lowerLimit) + 1; j++){
+
+            var calcFormula = this.base * Math.pow( this.ratio, ((j * -1) / this.notes) )
+
+            if(this.roundPixel){
+
+              if(this.roundEven){
+                var sizeLower = 2 * Math.round( calcFormula / 2 );
+              }else{
+                var sizeLower = Math.round( calcFormula );
+              }
+
+            }else{
+              var sizeLower = calcFormula
+            }
+
+            this.scale.push(sizeLower)
+
+          }
+
+          // numerically sorts the array
+          this.scale.sort(function(a, b) {
+            return a - b;
+          }).reverse();
+
+
+          console.log(this.scale);
+
+        },
+        addUpper: function(){
+          this.upperCounter++;
+          this.calculate();
+        },
+        removeUpper: function(){
+          this.upperCounter--;
+          this.calculate();
+        },
+        addLower: function(){
+          this.lowerCounter++;
+          this.calculate();
+        },
+        removeLower: function(){
+          this.lowerCounter--;
+          this.calculate();
+        },
+        testRatio: function(a){
+          if(a % this.base == 0){
+            console.log('bigger value ' + a)
+            return true
+          }else if(this.base % a == 0){
+            console.log('smaller value ' + a)
+            return true
+          }else{
+            return false
+          }
+        },
+        reset: function(){
+          this.base = 16;
+          this.defineBase = 16;
+          this.ratio = 2;
+          this.notes = 5;
+          this.message = 'Lorem ipsum dolor sit amet.';
+          this.upperCounter = 0;
+          this.lowerCounter = 0;
+          this.calculate();
+        },
+      },
+
+    })
+
+  </script>
+
+</body>
+
+</html>
